@@ -21,9 +21,9 @@ ROWS_MONTHLY = [("RD - 5 Year Maturity", "rd5"), ("RD - 10 Year (with deposits)"
 ROWS_FD = [("1 Year TD", "td1"), ("2 Year TD", "td2"), ("3 Year TD", "td3"), ("5 Year TD", "td5"),
            ("5 Year NSC", "nsc"), ("KVP maturity (x2)", "kvp"), ("KVP doubles in (months)", "kvp_months")]
 ROWS_INCOME = [("MIS - Monthly interest", "mis_monthly"), ("SCSS - Quarterly interest", "scss_quarterly"),
-               ("SCSS - Average monthly", "scss_monthly"),
-               ("MIS interest -> RD denom.", "mis_rd_denom"), ("Principal + RD (MIS)", "mis_rd"),
-               ("SCSS interest -> RD denom.", "scss_rd_denom"), ("Principal + RD (SCSS)", "scss_rd")]
+               ("SCSS - Avg monthly (payable Qly only)", "scss_monthly"),
+               ("MIS to SB to RD - denom.", "mis_rd_denom"), ("Principal + RD (MIS)", "mis_rd"),
+               ("SCSS to SB to RD - denom.", "scss_rd_denom"), ("Principal + RD (SCSS)", "scss_rd")]
 
 
 def res_path(name):
@@ -109,22 +109,26 @@ class App(tk.Tk):
                      ).grid(row=r + n, column=2, sticky="e")
         msg = tk.StringVar()
         self.vars[key + "_msg"] = msg
-        tk.Label(lf, textvariable=msg, fg="#C0392B", wraplength=330, justify="left", font=("Segoe UI", 8)
+        tk.Label(lf, textvariable=msg, fg="#C0392B", wraplength=340, justify="left", font=("Segoe UI", 8)
                  ).grid(row=r + len(rows), column=0, columnspan=3, sticky="w", pady=(6, 0))
 
     def _build_rates(self):
-        lf = ttk.LabelFrame(self, text="4. Interest Rates (% p.a.) - edit and press Save Rates", padding=8)
+        lf = ttk.LabelFrame(self, text="4. Interest Rates (% p.a.)", padding=8)
         lf.pack(fill="x", padx=10, pady=6)
+        self.rate_vars = {}
         for i, name in enumerate(self.rates):
             row, col = divmod(i, 6)
-            ttk.Label(lf, text=name).grid(row=row * 2, column=col, padx=6, sticky="w")
-            sv = tk.StringVar(value="%.2f" % self.rates[name])
+            ttk.Label(lf, text=name).grid(row=row * 2, column=col, padx=10, sticky="w")
+            sv = tk.StringVar()
             self.rate_vars[name] = sv
-            ttk.Entry(lf, textvariable=sv, width=9, justify="right").grid(row=row * 2 + 1, column=col, padx=6, pady=(0, 4))
-        bf = ttk.Frame(lf)
-        bf.grid(row=0, column=6, rowspan=4, padx=14)
-        ttk.Button(bf, text="Save Rates", command=self.save_rates).pack(fill="x", pady=2)
-        ttk.Button(bf, text="Reset Defaults", command=self.reset_rates).pack(fill="x", pady=2)
+            tk.Label(lf, textvariable=sv, font=("Segoe UI", 10, "bold"), fg=NAVY, anchor="w"
+                     ).grid(row=row * 2 + 1, column=col, padx=10, sticky="w", pady=(0, 4))
+        ttk.Button(lf, text="Edit Rates", command=self.edit_rates).grid(row=0, column=6, rowspan=4, padx=16)
+        self._refresh_rates()
+
+    def _refresh_rates(self):
+        for name, sv in self.rate_vars.items():
+            sv.set("%.2f %%" % self.rates[name])
 
     def _build_footer(self):
         b = ttk.Frame(self)
@@ -137,39 +141,59 @@ class App(tk.Tk):
         for line in DEV_LINES:
             tk.Label(d, text=line, bg=SOFT, font=("Segoe UI", 8)).pack()
 
-    # ------------------------------------------------------------ rates
-    def _apply_rates(self):
-        new = {}
-        for name, sv in self.rate_vars.items():
-            v = to_float(sv.get())
-            if v <= 0 or v > 30:
-                messagebox.showwarning("Interest Rates", "Enter a valid rate for %s (e.g. 7.4)." % name)
-                return False
-            new[name] = v
-        self.rates = new
-        return True
+    # ------------------------------------------------------------ rates (separate edit window)
+    def edit_rates(self):
+        win = tk.Toplevel(self)
+        win.title("Edit Interest Rates")
+        win.resizable(False, False)
+        win.transient(self)
+        try:
+            win.iconbitmap(res_path("kavasu.ico"))
+        except Exception:
+            pass
+        ttk.Label(win, text="Enter new rates (% p.a.) and press Save", font=("Segoe UI", 9, "bold")
+                  ).grid(row=0, column=0, columnspan=2, padx=12, pady=(10, 6))
+        entries = {}
+        for i, (name, val) in enumerate(self.rates.items()):
+            ttk.Label(win, text=name).grid(row=i + 1, column=0, sticky="w", padx=(12, 6), pady=2)
+            sv = tk.StringVar(value="%.2f" % val)
+            entries[name] = sv
+            ttk.Entry(win, textvariable=sv, width=10, justify="right").grid(row=i + 1, column=1, padx=(0, 12))
 
-    def save_rates(self):
-        if self._apply_rates():
-            ce.save_rates(self.rates)
+        def save():
+            new = {}
+            for name, sv in entries.items():
+                v = to_float(sv.get())
+                if v <= 0 or v > 30:
+                    return messagebox.showwarning("Interest Rates", "Enter a valid rate for %s (e.g. 7.4)." % name,
+                                                  parent=win)
+                new[name] = v
+            self.rates = new
+            ce.save_rates(new)
+            self._refresh_rates()
+            win.destroy()
             messagebox.showinfo("Update Successful", "Interest rates saved.")
 
-    def reset_rates(self):
-        if messagebox.askyesno("Reset", "Restore the default interest rates?"):
-            for k, v in ce.DEFAULT_RATES.items():
-                self.rate_vars[k].set("%.2f" % v)
-            self._apply_rates()
-            ce.save_rates(self.rates)
+        bf = ttk.Frame(win)
+        bf.grid(row=len(entries) + 1, column=0, columnspan=2, pady=10)
+        ttk.Button(bf, text="Save", command=save).pack(side="left", padx=6)
+        ttk.Button(bf, text="Cancel", command=win.destroy).pack(side="left", padx=6)
+        win.update_idletasks()
+        win.geometry("+%d+%d" % (self.winfo_rootx() + 80, self.winfo_rooty() + 80))
+        win.grab_set()
 
     # ------------------------------------------------------------ calculations
     def _show(self, data, rows):
         for _, k in rows:
             val = data[k]
-            self.vars[k].set(str(val) if k == "kvp_months" else ce.inr(val))
+            if k == "kvp_months":
+                self.vars[k].set(str(val))
+            elif k in ("rd5", "rd10_with", "rd10_without", "ppf", "ssa") and not val:
+                self.vars[k].set("Invalid")
+            else:
+                self.vars[k].set(ce.inr(val))
 
     def calc_monthly(self):
-        if not self._apply_rates():
-            return
         try:
             d = ce.monthly_contribution(to_float(self.vars["monthly_in"].get()), self.rates)
         except ValueError as e:
@@ -179,8 +203,6 @@ class App(tk.Tk):
         self.vars["monthly_in_msg"].set(d["message"])
 
     def calc_fd(self):
-        if not self._apply_rates():
-            return
         try:
             d = ce.fd_compare(to_float(self.vars["fd_in"].get()), self.rates)
         except ValueError as e:
@@ -189,8 +211,6 @@ class App(tk.Tk):
         self._show(d, ROWS_FD)
 
     def calc_income(self):
-        if not self._apply_rates():
-            return
         try:
             d = ce.income_schemes(to_float(self.vars["inc_in"].get()), bool(self.vars["joint"].get()), self.rates)
         except ValueError as e:
