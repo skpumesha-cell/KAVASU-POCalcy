@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- WiX Toolset v3.11. Build via build_all.bat -->
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <Product Id="*" Name="KAVASU PostofficeCalcy" Language="1033" Version="1.0.0"
            Manufacturer="KAVASU" UpgradeCode="7C1E5B2A-3D4F-4A86-9B1E-2F5A6C7D8E90">
@@ -25,10 +24,10 @@
     </Directory>
 
     <DirectoryRef Id="INSTALLFOLDER">
-      <Component Id="MainExe" Guid="*">
+      <Component Id="MainExe" Guid="A3F1C2D4-5B6E-4F70-8A91-B2C3D4E5F601">
         <File Id="AppExe" Source="$(var.SourceExe)" Name="KAVASU_PostofficeCalcy.exe" KeyPath="yes" />
       </Component>
-      <Component Id="IconFile" Guid="*">
+      <Component Id="IconFile" Guid="B4E2D3C5-6C7F-4A81-9BA2-C3D4E5F6A702">
         <File Id="IcoFile" Source="$(var.IconFile)" Name="kavasu.ico" KeyPath="yes" />
       </Component>
     </DirectoryRef>
