@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- WiX Toolset v3.11. Build via build_all.bat -->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" Name="KAVASU PostofficeCalcy" Language="1033" Version="1.0.0"
+           Manufacturer="KAVASU" UpgradeCode="7C1E5B2A-3D4F-4A86-9B1E-2F5A6C7D8E90">
+    <Package InstallerVersion="301" Compressed="yes" InstallScope="perMachine"
+             Description="KAVASU PostofficeCalcy - Post Office investment calculator" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon.ico" SourceFile="$(var.IconFile)" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
+
+    <!-- Force install root to drive C: -> C:\KAVASU\POCalcy -->
+    <SetDirectory Id="TARGETDIR" Value="C:\" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="KAVASUDIR" Name="KAVASU">
+        <Directory Id="INSTALLFOLDER" Name="POCalcy" />
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="AppMenuDir" Name="KAVASU PostofficeCalcy" />
+      </Directory>
+      <Directory Id="DesktopFolder" />
+    </Directory>
+
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="MainExe" Guid="*">
+        <File Id="AppExe" Source="$(var.SourceExe)" Name="KAVASU_PostofficeCalcy.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="IconFile" Guid="*">
+        <File Id="IcoFile" Source="$(var.IconFile)" Name="kavasu.ico" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="AppMenuDir">
+      <Component Id="StartMenuShortcut" Guid="*">
+        <Shortcut Id="StartShortcut" Name="KAVASU PostofficeCalcy" Target="[INSTALLFOLDER]KAVASU_PostofficeCalcy.exe"
+                  WorkingDirectory="INSTALLFOLDER" Icon="AppIcon.ico" />
+        <RemoveFolder Id="RmAppMenuDir" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\KAVASU\POCalcy" Name="StartMenu" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="DesktopFolder">
+      <Component Id="DesktopShortcutC" Guid="*">
+        <Shortcut Id="DeskShortcut" Name="KAVASU PostofficeCalcy" Target="[INSTALLFOLDER]KAVASU_PostofficeCalcy.exe"
+                  WorkingDirectory="INSTALLFOLDER" Icon="AppIcon.ico" />
+        <RegistryValue Root="HKCU" Key="Software\KAVASU\POCalcy" Name="Desktop" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <Feature Id="Main" Title="KAVASU PostofficeCalcy" Level="1">
+      <ComponentRef Id="MainExe" />
+      <ComponentRef Id="IconFile" />
+      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="DesktopShortcutC" />
+    </Feature>
+  </Product>
+</Wix>
