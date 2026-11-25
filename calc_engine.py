@@ -108,13 +108,19 @@ def _ppf_ssa(p, rate, years, deposit_years):
     return bal
 
 
+PPF_SSA_MONTHLY_MAX = 12500          # Rs. 1,50,000 per financial year
+LIMIT_MSG = ("Invalid Investment for SSA and PPF. "
+             "Maximum investment limit 1.5L per Financial Year")
+
+
 def monthly_contribution(p, rates):
     if p <= 0:
         raise ValueError("Please enter a valid Monthly Contribution amount.")
     r_rd, r_ppf, r_ssa = _r(rates, "RD"), _r(rates, "PPF"), _r(rates, "SSA")
+    over_limit = p > PPF_SSA_MONTHLY_MAX
     valid_rd = p >= 100 and _mult(p, 10)
-    valid_ssa = p >= 250 and _mult(p, 50)
-    valid_ppf = p >= 500 and _mult(p, 50)
+    base_ssa = p >= 250 and _mult(p, 50)
+    base_ppf = p >= 500 and _mult(p, 50)
 
     rd5 = rd10w = rd10wo = 0.0
     if valid_rd:
@@ -124,14 +130,20 @@ def monthly_contribution(p, rates):
     res = {
         "monthly": p,
         "rd5": round(rd5), "rd10_with": round(rd10w), "rd10_without": round(rd10wo),
-        "ppf": round(_ppf_ssa(p, r_ppf, 15, 15)) if valid_ppf else 0,
-        "ssa": round(_ppf_ssa(p, r_ssa, 21, 15)) if valid_ssa else 0,
+        "ppf": round(_ppf_ssa(p, r_ppf, 15, 15)) if (base_ppf and not over_limit) else 0,
+        "ssa": round(_ppf_ssa(p, r_ssa, 21, 15)) if (base_ssa and not over_limit) else 0,
     }
-    ok = all(res[k] for k in ("rd5", "rd10_with", "rd10_without", "ppf", "ssa"))
-    res["ok"] = ok
-    res["message"] = ("Denomination is in Proper Validation" if ok
-                      else "You inserted Invalid Denomination "
-                           "(RD: min 100, x10 | SSA: min 250, x50 | PPF: min 500, x50)")
+    denom_ok = valid_rd and base_ssa and base_ppf
+    msgs = []
+    if over_limit:
+        msgs.append(LIMIT_MSG)
+    if not denom_ok:
+        msgs.append("You inserted Invalid Denomination "
+                    "(RD: min 100, x10 | SSA: min 250, x50 | PPF: min 500, x50)")
+    if not msgs:
+        msgs.append("Denomination is in Proper Validation")
+    res["ok"] = denom_ok and not over_limit
+    res["message"] = "\n".join(msgs)
     return res
 
 
