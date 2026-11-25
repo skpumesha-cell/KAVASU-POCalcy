@@ -1,0 +1,5 @@
+build/
+dist/
+dist_msi/
+__pycache__/
+*.spec
