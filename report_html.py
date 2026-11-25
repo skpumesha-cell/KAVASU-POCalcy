@@ -6,6 +6,10 @@ import os
 from calc_engine import inr
 
 
+def _amt(n):
+    return inr(n) if n else "Invalid"
+
+
 def _rows(pairs):
     return "".join("<tr><td>%s</td><td class='v'>%s</td></tr>" % (html.escape(a), html.escape(b))
                    for a, b in pairs)
@@ -23,12 +27,12 @@ def build_html(results):
     if m:
         left.append(_section(1, "Monthly Contribution Schemes", [
             ("Monthly Investment", inr(m["monthly"])),
-            ("RD - 5 Year Maturity", inr(m["rd5"])),
-            ("RD - 10 Year (with deposits)", inr(m["rd10_with"])),
-            ("RD - 10 Year (without further deposits)", inr(m["rd10_without"])),
-            ("PPF - 15 Years", inr(m["ppf"])),
-            ("SSA - 21 Years", inr(m["ssa"])),
-        ], None if m["ok"] else m["message"]))
+            ("RD - 5 Year Maturity", _amt(m["rd5"])),
+            ("RD - 10 Year (with deposits)", _amt(m["rd10_with"])),
+            ("RD - 10 Year (without further deposits)", _amt(m["rd10_without"])),
+            ("PPF - 15 Years", _amt(m["ppf"])),
+            ("SSA - 21 Years", _amt(m["ssa"])),
+        ], None if m["ok"] else m["message"].replace("\n", " ")))
     if f:
         right.append(_section(2, "FD & Certificate Comparison (Amount: %s)" % inr(f["amount"]), [
             ("1 Year TD", inr(f["td1"])), ("2 Year TD", inr(f["td2"])),
@@ -40,13 +44,13 @@ def build_html(results):
         left.append(_section(3, "Regular Income - MIS & SCSS (Principal: %s)" % inr(i["principal"]), [
             ("MIS - Monthly Interest", inr(i["mis_monthly"]) if i["mis_monthly"] else "Invalid"),
             ("SCSS - Quarterly Interest", inr(i["scss_quarterly"]) if i["scss_quarterly"] else "Invalid"),
-            ("SCSS - Average Monthly", inr(i["scss_monthly"]) if i["scss_monthly"] else "Invalid"),
+            ("SCSS - Average Monthly But payable Qly only", inr(i["scss_monthly"]) if i["scss_monthly"] else "Invalid"),
         ], "MIS limit: Rs. 9 L single / Rs. 15 L joint. SCSS limit: Rs. 30 L."))
         right.append(_section(4, "Interest Routed to 5-Year RD", [
-            ("MIS to RD - RD denomination", inr(i["mis_rd_denom"])),
-            ("MIS to RD - Principal + RD maturity", inr(i["mis_rd"])),
-            ("SCSS to RD - RD denomination", inr(i["scss_rd_denom"])),
-            ("SCSS to RD - Principal + RD maturity", inr(i["scss_rd"])),
+            ("MIS to SB to RD - RD denomination", inr(i["mis_rd_denom"])),
+            ("MIS to SB to RD - Principal + RD maturity", inr(i["mis_rd"])),
+            ("SCSS to SB to RD - RD denomination", inr(i["scss_rd_denom"])),
+            ("SCSS to SB to RD - Principal + RD maturity", inr(i["scss_rd"])),
         ]))
 
     today = datetime.date.today().strftime("%d-%m-%Y")
@@ -76,7 +80,7 @@ td.v { text-align:right; font-weight:bold; white-space:nowrap; }
 <button class="btn" onclick="window.print()">Print</button>
 <div class="page">
 <header><h1>POST OFFICE INVESTMENT PLAN SUMMARY</h1><div class="d">Date: @@DATE@@</div></header>
-<div class="intro">Projected returns based on the inputs given in the Post Office Investment Calculator.</div>
+<div class="intro">Investment and interest is based on dated @@DATE@@</div>
 <div class="cols"><div>@@LEFT@@</div><div>@@RIGHT@@</div></div>
 <div class="foot">Figures are indicative projections at the interest rates in force when calculated; actual returns are as per Post Office rules at the time of investment.</div>
 </div></body></html>"""
